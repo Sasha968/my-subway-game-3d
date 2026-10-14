@@ -4,17 +4,22 @@
 <meta charset="utf-8">
 <title>Мой 3D раннер</title>
 <style>
-  body { margin: 0; overflow: hidden; font-family: sans-serif; }
+  body { margin: 0; overflow: hidden; font-family: sans-serif; touch-action: none; }
   #score { position: absolute; top: 10px; left: 10px; color: white;
            font-size: 24px; text-shadow: 2px 2px black; z-index: 10; }
   #loading { position: absolute; top: 50%; left: 50%;
              transform: translate(-50%, -50%); color: white;
              font-size: 30px; text-shadow: 2px 2px black; text-align: center;}
+  #controls { position: absolute; bottom: 20px; left: 50%;
+              transform: translateX(-50%); color: white;
+              font-size: 16px; text-shadow: 2px 2px black;
+              text-align: center; opacity: 0.7; }
 </style>
 </head>
 <body>
 <div id="score">Счёт: 0</div>
 <div id="loading">Загрузка персонажа...<br><small>Подожди пару секунд</small></div>
+<div id="controls">← → или свайп для движения | Пробел или свайп вверх для прыжка</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -56,8 +61,10 @@ const loader = new THREE.GLTFLoader();
 
 loader.load('player.glb', gltf => {
   player = gltf.scene;
-  player.scale.set(0.8, 0.8, 0.8);
-  player.position.set(0, 0, 0);
+  // УВЕЛИЧЕН В 2 РАЗА (было 0.8, стало 1.6)
+  player.scale.set(1.6, 1.6, 1.6);
+  // Поднят выше, чтобы ноги не проваливались
+  player.position.set(0, 1, 0);
   player.rotation.y = Math.PI;
   player.traverse(obj => { 
     if (obj.isMesh) {
@@ -93,12 +100,51 @@ let score = 0;
 let gameOver = false;
 let gameStarted = false;
 
+// Клавиатура
 document.addEventListener('keydown', e => {
   if (!gameStarted) return;
   if (gameOver && e.key.toLowerCase() === 'r') location.reload();
   if ((e.key === 'ArrowLeft' || e.key === 'a') && currentLane > 0) currentLane--;
   if ((e.key === 'ArrowRight' || e.key === 'd') && currentLane < 2) currentLane++;
   if (e.key === ' ' && !isJumping) { isJumping = true; velocityY = 0.3; }
+  targetX = lanes[currentLane];
+});
+
+// СВАЙПЫ ДЛЯ ТЕЛЕФОНА
+let touchStartX = 0;
+let touchStartY = 0;
+
+document.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+});
+
+document.addEventListener('touchend', e => {
+  if (!gameStarted || gameOver) {
+    if (gameOver) location.reload();
+    return;
+  }
+  
+  const touchEndX = e.changedTouches[0].clientX;
+  const touchEndY = e.changedTouches[0].clientY;
+  const diffX = touchEndX - touchStartX;
+  const diffY = touchEndY - touchStartY;
+  
+  // Определяем направление свайпа
+  if (Math.abs(diffX) > Math.abs(diffY)) {
+    // Горизонтальный свайп
+    if (diffX > 30 && currentLane < 2) {
+      currentLane++;
+    } else if (diffX < -30 && currentLane > 0) {
+      currentLane--;
+    }
+  } else {
+    // Вертикальный свайп
+    if (diffY < -30 && !isJumping) {
+      isJumping = true;
+      velocityY = 0.3;
+    }
+  }
   targetX = lanes[currentLane];
 });
 
@@ -114,8 +160,8 @@ function animate() {
     if (isJumping) {
       player.position.y += velocityY;
       velocityY -= 0.015;
-      if (player.position.y <= 0) {
-        player.position.y = 0;
+      if (player.position.y <= 1) {
+        player.position.y = 1;
         isJumping = false;
         velocityY = 0;
       }
@@ -144,14 +190,14 @@ function animate() {
     obstacles.forEach(o => {
       if (Math.abs(o.position.x - player.position.x) < 1 &&
           Math.abs(o.position.z - player.position.z) < 1 &&
-          player.position.y < 1.5) {
+          player.position.y < 2.5) {
         gameOver = true;
-        document.getElementById('score').textContent = 'GAME OVER! Счёт: ' + score + ' (R - рестарт)';
+        document.getElementById('score').textContent = 'GAME OVER! Счёт: ' + score + ' (Нажми чтобы рестарт)';
       }
     });
 
-    camera.position.set(player.position.x * 0.3, 4, player.position.z + 7);
-    camera.lookAt(player.position.x, 1.5, player.position.z - 5);
+    camera.position.set(player.position.x * 0.3, 5, player.position.z + 8);
+    camera.lookAt(player.position.x, 2, player.position.z - 5);
 
     document.getElementById('score').textContent = 'Счёт: ' + score;
   }
