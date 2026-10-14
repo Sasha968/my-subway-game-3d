@@ -56,8 +56,9 @@ const loader = new THREE.GLTFLoader();
 
 loader.load('player.glb', gltf => {
   player = gltf.scene;
-  player.scale.set(1, 1, 1);
+  player.scale.set(0.8, 0.8, 0.8);
   player.position.set(0, 0, 0);
+  player.rotation.y = Math.PI;
   player.traverse(obj => { 
     if (obj.isMesh) {
       obj.castShadow = true;
@@ -149,8 +150,8 @@ function animate() {
       }
     });
 
-    camera.position.set(player.position.x * 0.3, 3, player.position.z + 5);
-    camera.lookAt(player.position.x, 1, player.position.z - 5);
+    camera.position.set(player.position.x * 0.3, 4, player.position.z + 7);
+    camera.lookAt(player.position.x, 1.5, player.position.z - 5);
 
     document.getElementById('score').textContent = 'Счёт: ' + score;
   }
@@ -165,4 +166,4 @@ addEventListener('resize', () => {
 });
 </script>
 </body>
-</html>S
+</html>
